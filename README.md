@@ -4,71 +4,79 @@ A secure, scalable, and accessible virtual mental health support system empoweri
 
 ## 🌍 Overview
 
-In regions affected by war or crisis, millions face mental trauma but lack access to professional care. This project bridges that gap through a tech-driven, AI-assisted therapy platform — enabling users to connect with certified therapists, book sessions, and access emotional support securely and privately.
+Millions of people living in conflict or crisis zones face extreme psychological trauma and limited access to mental health professionals.  
+This project bridges that gap by providing a tech-driven virtual therapy platform where:
 
-## ✨ Features (As of Review-II)
+- Users can connect with certified therapists  
+- Sessions can be booked and managed easily  
+- Communication remains secure and private  
+- AI-driven insights can assist therapists (upcoming)  
 
-- ✅ **Dual Authentication System** — Separate login/registration for Users and Therapists  
-- ✅ **Role-Based Access Control** — Secure JWT authentication with role-specific permissions  
-- ✅ **Session Booking System** — Users can book therapy sessions with therapists  
-- ✅ **Therapist Dashboard** — View, manage, and track booked appointments  
-- ✅ **User Dashboard** — View and cancel sessions, browse therapists dynamically  
-- ✅ **MongoDB Integration** — Secure, connected backend data flow  
-- ✅ **Modern UI** — Calm, minimalist design with Tailwind CSS  
-- ✅ **Responsive Frontend** — Built with React.js and role-aware navigation  
+## ✨ Features (Completed as of Review-II)
+
+- ✅ **Dual Authentication System** — Separate login/registration for Users & Therapists  
+- ✅ **Role-Based Access Control** — Secure JWT tokens with role-specific permissions  
+- ✅ **Session Booking System** — Users can book therapy sessions  
+- ✅ **Therapist Dashboard** — View, accept, and manage appointments  
+- ✅ **User Dashboard** — View, track, and cancel booked sessions  
+- ✅ **MongoDB Integration** — Clean and connected schema  
+- ✅ **Modern UI/UX** — Calm design using Tailwind CSS  
+- ✅ **Responsive Frontend** — Built with React.js  
 
 ## 🧩 System Architecture
 
-Frontend (React + Tailwind)  
+Frontend (React + TailwindCSS)  
 ↓  
 Backend (Node.js + Express)  
 ↓  
 Database (MongoDB Atlas)  
 ↓  
-AI Service (Flask / Python – upcoming)
+AI Microservice (Flask / Python – upcoming)  
 
-### 🔄 Flow
+### 🔄 Application Flow
 
-1. Users/Therapists → Register/Login → JWT Token → Access Role-Based Dashboards  
-2. Users → Fetch Therapist List → Book Session  
-3. Therapist Dashboard Updates in Real-Time  
+1. User/Therapist → Register/Login → JWT issued  
+2. Role-based dashboard access  
+3. User views therapist list → books session  
+4. Therapist dashboard updates in real time  
+5. Secure logout via navbar  
 
 ## ⚙️ Tech Stack
 
-| Layer               | Technology                                      |
-|--------------------|--------------------------------------------------|
-| **Frontend**        | React.js, TailwindCSS, Axios, React Router      |
-| **Backend**         | Node.js, Express.js, JWT, bcrypt                |
-| **Database**        | MongoDB Atlas                                   |
+| Layer               | Technologies                                   |
+|---------------------|------------------------------------------------|
+| **Frontend**        | React.js, TailwindCSS, Axios, React Router     |
+| **Backend**         | Node.js, Express.js, JWT, bcrypt               |
+| **Database**        | MongoDB Atlas                                  |
 | **AI Integration**  | Python, Flask, Hugging Face Transformers (upcoming) |
-| **Real-Time Comm.** | WebRTC, Socket.io (upcoming)                    |
-| **Deployment**      | Render (Backend), Vercel (Frontend)             |
+| **Real-Time Comm.** | WebRTC, Socket.io (upcoming)                   |
+| **Deployment**      | Render (Backend), Vercel (Frontend)            |
 
 ## 🧠 Key Modules
 
-| Module             | Description                                                  |
-|--------------------|--------------------------------------------------------------|
-| **Authentication** | Secure login & registration for users and therapists         |
-| **Session Mgmt.**  | Book, view, and cancel therapy sessions                      |
-| **Role-Based Access** | Different dashboards and permissions for each role       |
-| **Database Design** | Linked collections for users, therapists, and sessions      |
-| **UI/UX Design**   | Calm, mental-health-themed interface with Tailwind CSS       |
+| Module              | Description                                                  |
+|---------------------|--------------------------------------------------------------|
+| **Authentication**  | Secure registration/login for Users & Therapists             |
+| **Session Mgmt.**   | Book, view, manage, and cancel therapy sessions              |
+| **Role-Based Access** | Dashboard-level and API-level permission control           |
+| **Database Design** | Structured collections for Users, Therapists, Sessions       |
+| **UI/UX Design**    | Minimal, mental-health-focused interface                     |
 
 ## 🧪 Demo Flow
 
-1. Register as a **User** or **Therapist**  
-2. Login using your credentials  
-3. **User** → Dashboard → Select a Therapist → Book Session  
-4. **Therapist** → Dashboard → View Appointments Instantly  
-5. Logout securely via Navbar  
+1. Register as **User** or **Therapist**  
+2. Login with email & password  
+3. **User** → Choose Therapist → Book Session  
+4. **Therapist** → View New Bookings → Manage Sessions  
+5. Logout securely via navbar  
 
 ## 🚀 Upcoming Milestones (Phase 6+)
 
-- 🔹 Real-Time Video/Chat using WebRTC + Socket.io  
-- 🔹 Emotion/Sentiment Analysis via Flask AI Microservice  
+- 🔹 Real-Time Video + Chat using WebRTC & Socket.io  
+- 🔹 Emotion/Sentiment Analysis via Python AI microservice  
 - 🔹 Resource Library for trauma coping strategies  
-- 🔹 NGO Collaboration Portal for multi-user device sharing  
-- 🔹 Deployment on Render + Vercel for public access  
+- 🔹 NGO Collaboration Mode (multi-user per device)  
+- 🔹 Deployment on Render + Vercel (public access)  
 
 ## 📂 Repository Structure
 
@@ -88,23 +96,28 @@ Virtual-Therapy/
 ├── README.md  
 └── package.json  
 
+
 ## 📸 UI Preview
 
-- 🧍‍♂️ **User Dashboard** – Book and view therapy sessions  
-- 👩‍⚕️ **Therapist Dashboard** – Manage and track appointments  
-- 🎨 **Login/Register Pages** – Minimal, soothing gradient UI  
+- 🧍‍♂️ **User Dashboard** — Book & view therapy sessions  
+- 👩‍⚕️ **Therapist Dashboard** — Manage incoming appointments  
+- 🔐 **Login/Register Pages** — Clean, soothing gradient UI  
+
+*(Screenshots will be added after UI polishing)*  
 
 ## 📜 License
 
 This project is open-source under the **MIT License**.  
-Use, adapt, and contribute freely.
+You are free to use, modify, and contribute.  
 
 ## 🤝 Contributing
 
-Contributions are always welcome!
+Contributions are welcome!  
 
-1. Fork the repo  
-2. Create a new branch (`feature/add-something`)  
+1. Fork the repository  
+2. Create a new branch:  
+   ```bash
+   git checkout -b feature/your-feature 
 3. Commit your changes  
 4. Open a Pull Request  
 
