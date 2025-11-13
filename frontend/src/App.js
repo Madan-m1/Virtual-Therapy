@@ -1,10 +1,16 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import { BrowserRouter as Router, Routes, Route, useParams } from "react-router-dom";
+import SessionRoom from "./components/SessionRoom";
 import UserDashboard from "./pages/UserDashboard";
 import TherapistDashboard from "./pages/TherapistDashboard";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
-function App() {
+function SessionRoomWrapper() {
+  const { id } = useParams();
+  return <SessionRoom sessionId={id} />;
+}
+
+export default function App() {
   return (
     <Router>
       <Routes>
@@ -12,9 +18,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/therapist/dashboard" element={<TherapistDashboard />} />
+        <Route path="/session/:id" element={<SessionRoomWrapper />} />
       </Routes>
     </Router>
   );
 }
-
-export default App;
