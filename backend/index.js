@@ -71,6 +71,15 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("🔴 Disconnected:", socket.user.id);
   });
+
+  // End Call event
+  socket.on("end-call", ({ sessionId }) => {
+    console.log("📞 Call ended by:", socket.user.id);
+
+  // Notify the other user in the session
+    socket.to(sessionId).emit("end-call");
+  });
+
 });
 
 // ✅ Start server

@@ -1,57 +1,119 @@
+// controllers/sessionController.js
 const Session = require("../models/Session");
+const User = require("../models/User");
 
-// 📅 Book a Session (User)
+// Helper → convert "10:00 AM - 10:30 AM" → Date range
+function parseTimeRange(date, timeSlot) {
+  const [start, end] = timeSlot.split(" - ");
+
+  const startDate = new Date(`${date} ${start}`);
+  const endDate = new Date(`${date} ${end}`);
+
+  return { startDate, endDate };
+}
+
+// Auto-expire sessions
+async function autoExpireSessions() {
+  const now = new Date();
+  await Session.updateMany(
+    { status: "booked", endTime: { $lt: now } },
+    { status: "expired" }
+  );
+}
+
+/******************************
+ * BOOK SESSION
+ ******************************/
 exports.bookSession = async (req, res) => {
   try {
     const { therapistId, date, timeSlot } = req.body;
+    const userId = req.user.id;
+
+    await autoExpireSessions();
+
+    const { startDate, endDate } = parseTimeRange(date, timeSlot);
+
+    if (startDate < new Date())
+      return res.status(400).json({ msg: "Cannot book past sessions" });
+
+    // Check overlapping sessions
+    const exists = await Session.findOne({
+      therapist: therapistId,
+      status: "booked",
+      $or: [
+        { startTime: { $lt: endDate, $gte: startDate } },
+        { endTime: { $gt: startDate, $lte: endDate } },
+      ],
+    });
+
+    if (exists)
+      return res.status(400).json({ msg: "Therapist already booked at this time" });
 
     const newSession = await Session.create({
-      user: req.user._id,
+      user: userId,
       therapist: therapistId,
       date,
       timeSlot,
+      startTime: startDate,
+      endTime: endDate,
       status: "booked",
     });
 
-    res.status(201).json({ message: "Session booked successfully", session: newSession });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.json(newSession);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-// 🧾 View All Sessions (Therapist)
-exports.getTherapistSessions = async (req, res) => {
-  try {
-    const sessions = await Session.find({ therapist: req.user._id })
-      .populate("user", "name email")
-      .sort({ date: 1 });
-
-    res.json(sessions);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// 👤 View User's Sessions
+/******************************
+ * USER Sessions
+ ******************************/
 exports.getUserSessions = async (req, res) => {
   try {
-    const sessions = await Session.find({ user: req.user._id })
-      .populate("therapist", "name specialization")
-      .sort({ date: 1 });
+    await autoExpireSessions();
+
+    const sessions = await Session.find({ user: req.user.id })
+      .populate("therapist", "name")
+      .sort({ startTime: 1 });
 
     res.json(sessions);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-// ❌ Cancel Session
+/******************************
+ * THERAPIST Sessions
+ ******************************/
+exports.getTherapistSessions = async (req, res) => {
+  try {
+    await autoExpireSessions();
+
+    const sessions = await Session.find({ therapist: req.user.id })
+      .populate("user", "name")
+      .sort({ startTime: 1 });
+
+    res.json(sessions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/******************************
+ * CANCEL Session
+ ******************************/
 exports.cancelSession = async (req, res) => {
   try {
-    const { id } = req.params;
-    const session = await Session.findByIdAndUpdate(id, { status: "cancelled" });
-    res.json({ message: "Session cancelled successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    const session = await Session.findById(req.params.id);
+
+    if (!session)
+      return res.status(404).json({ msg: "Session not found" });
+
+    session.status = "cancelled";
+    await session.save();
+
+    res.json({ msg: "Session cancelled" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

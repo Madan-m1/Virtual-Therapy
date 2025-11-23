@@ -7,3 +7,7 @@ body {
   background-color: #f9fafb;
   font-family: 'Inter', sans-serif;
 }
+.mirror {
+  transform: scaleX(-1);
+}
+
