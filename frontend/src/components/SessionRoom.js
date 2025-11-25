@@ -1,17 +1,34 @@
 // frontend/src/components/SessionRoom.js
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import Peer from "simple-peer";
 
 const SOCKET_URL =
   process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
 
-// FREE TURN server (DEV ONLY). Replace with your own Coturn in production.
-const FREE_TURN = {
-  urls: "turn:relay1.expressturn.com:3478",
-  username: "efree",
-  credential: "efree",
-};
+// Metered.ca TURN servers configuration
+const ICE_SERVERS = [
+  { urls: "stun:stun.relay.metered.ca:80" },
+  {
+    urls: "turn:global.relay.metered.ca:80",
+    username: "56d6eb0d549719f538d2eebf",
+    credential: "NXJEOEspP5AbW6Qh",
+  },
+  {
+    urls: "turn:global.relay.metered.ca:80?transport=tcp",
+    username: "56d6eb0d549719f538d2eebf",
+    credential: "NXJEOEspP5AbW6Qh",
+  },
+  {
+    urls: "turn:global.relay.metered.ca:443",
+    username: "56d6eb0d549719f538d2eebf",
+    credential: "NXJEOEspP5AbW6Qh",
+  },
+  {
+    urls: "turns:global.relay.metered.ca:443?transport=tcp",
+    username: "56d6eb0d549719f538d2eebf",
+    credential: "NXJEOEspP5AbW6Qh",
+  },
+];
 
 export default function SessionRoom({ sessionId }) {
   // Chat state
@@ -37,8 +54,7 @@ export default function SessionRoom({ sessionId }) {
 
   // Refs
   const socketRef = useRef(null);
-  const peerRef = useRef(null);
-  const pcRef = useRef(null); // underlying RTCPeerConnection
+  const pcRef = useRef(null);             // RTCPeerConnection
   const localStreamRef = useRef(null);
   const localVideo = useRef(null);
   const remoteVideo = useRef(null);
@@ -48,23 +64,20 @@ export default function SessionRoom({ sessionId }) {
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
 
-  // Current user id (from JWT) – used to style "me" vs "them"
+  // My user id (from token or localStorage) for chat alignment
   const myIdRef = useRef(localStorage.getItem("userId") || null);
 
-  // ICE servers
-  const iceServers = [{ urls: "stun:stun.l.google.com:19302" }, FREE_TURN];
-
-  // Auto-scroll chat
+  // Auto-scroll chat box
   useEffect(() => {
     const box = document.getElementById("chatBox");
     if (box) box.scrollTop = box.scrollHeight;
   }, [messages]);
 
-  // Socket + WebRTC setup
+  // Socket + signaling setup
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    // ⬇️ Decode JWT to get user id if not in localStorage
+    // Decode JWT to get user id if not already stored
     if (token && !myIdRef.current) {
       try {
         const payloadBase64 = token.split(".")[1];
@@ -74,7 +87,6 @@ export default function SessionRoom({ sessionId }) {
         const payload = JSON.parse(payloadJson);
         if (payload.id) {
           myIdRef.current = payload.id;
-          // optional: cache for future sessions
           localStorage.setItem("userId", payload.id);
         }
       } catch (e) {
@@ -92,7 +104,7 @@ export default function SessionRoom({ sessionId }) {
       socketRef.current.emit("join-session", sessionId);
     });
 
-    // ✅ Receive chat messages ONLY from server (no local duplication)
+    // Chat: server is the single source of truth (no local duplication)
     socketRef.current.on("chat-message", (m) => {
       setMessages((prev) => [...prev, m]);
     });
@@ -103,42 +115,65 @@ export default function SessionRoom({ sessionId }) {
       typingTimer.current = setTimeout(() => setTyping(false), 1400);
     });
 
-    // WebRTC signaling
-    socketRef.current.on("signal", ({ data }) => {
-      // If peer already exists, just forward signal to it
-      if (peerRef.current) {
+    // WebRTC signaling from server
+    socketRef.current.on("signal", async ({ data }) => {
+      if (!data || !data.type) return;
+
+      if (data.type === "offer") {
+        // Incoming offer: we act as callee
+        setIncomingCall(true);
         try {
-          peerRef.current.signal(data);
-        } catch (err) {
-          console.warn("peer.signal error:", err);
-        }
-        return;
-      }
+          // Ensure we have local media
+          if (!localStreamRef.current) {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: true,
+            });
+            localStreamRef.current = stream;
+            if (localVideo.current) localVideo.current.srcObject = stream;
+          }
 
-      // Incoming call: create answerer peer
-      setIncomingCall(true);
-      navigator.mediaDevices
-        .getUserMedia({ audio: true, video: true })
-        .then((stream) => {
-          localStreamRef.current = stream;
-          if (localVideo.current) localVideo.current.srcObject = stream;
+          if (!pcRef.current) {
+            createPeerConnection(localStreamRef.current);
+          }
 
-          createPeer(false, stream, () => {
-            try {
-              peerRef.current.signal(data);
-            } catch (err) {
-              console.warn("signal after createPeer error:", err);
-            }
-            setCallStarted(true);
-            setIncomingCall(false);
-            startCallTimers();
-            startStatsPolling();
+          const pc = pcRef.current;
+          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          socketRef.current.emit("signal", {
+            sessionId,
+            data: { type: "answer", sdp: pc.localDescription },
           });
-        })
-        .catch((err) => {
-          console.error("getUserMedia denied for incoming call", err);
+
+          setCallStarted(true);
           setIncomingCall(false);
-        });
+          startCallTimers();
+          startStatsPolling();
+        } catch (err) {
+          console.error("Error handling incoming offer", err);
+          setIncomingCall(false);
+        }
+      } else if (data.type === "answer") {
+        // Our offer got an answer
+        try {
+          const pc = pcRef.current;
+          if (!pc) return;
+          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        } catch (err) {
+          console.error("Error handling answer", err);
+        }
+      } else if (data.type === "candidate") {
+        try {
+          const pc = pcRef.current;
+          if (!pc || !data.candidate) return;
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (err) {
+          console.error("Error adding ICE candidate", err);
+        }
+      }
     });
 
     // Call ended by remote
@@ -171,41 +206,43 @@ export default function SessionRoom({ sessionId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // Create peer
-  function createPeer(initiator, stream, onCreated) {
-    const peer = new Peer({
-      initiator,
-      trickle: true,
-      stream,
-      config: { iceServers },
+  // Create a native RTCPeerConnection
+  function createPeerConnection(stream) {
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+    // Add local tracks
+    stream.getTracks().forEach((track) => {
+      pc.addTrack(track, stream);
     });
 
-    peer.on("signal", (signal) => {
-      try {
-        socketRef.current?.emit("signal", { sessionId, data: signal });
-      } catch (err) {
-        console.warn("emit signal failed", err);
+    // Remote track
+    pc.ontrack = (event) => {
+      const [remoteStream] = event.streams;
+      if (remoteVideo.current) {
+        remoteVideo.current.srcObject = remoteStream;
       }
-    });
-
-    peer.on("stream", (remoteStream) => {
-      if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream;
       setConnected(true);
-    });
+    };
 
-    peer.on("connect", () => {
-      try {
-        const maybePc = peer._pc || peer.pc || peer._pcReal || null;
-        if (maybePc) pcRef.current = maybePc;
-      } catch {}
-    });
+    // ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        try {
+          socketRef.current?.emit("signal", {
+            sessionId,
+            data: { type: "candidate", candidate: event.candidate },
+          });
+        } catch {}
+      }
+    };
 
-    peer.on("error", (err) => {
-      console.error("Peer error:", err);
-    });
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+        safeEndCleanup();
+      }
+    };
 
-    peerRef.current = peer;
-    if (onCreated) onCreated();
+    pcRef.current = pc;
   }
 
   // Start call (caller)
@@ -219,7 +256,19 @@ export default function SessionRoom({ sessionId }) {
       localStreamRef.current = stream;
       if (localVideo.current) localVideo.current.srcObject = stream;
 
-      createPeer(true, stream);
+      if (!pcRef.current) {
+        createPeerConnection(stream);
+      }
+
+      const pc = pcRef.current;
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      socketRef.current?.emit("signal", {
+        sessionId,
+        data: { type: "offer", sdp: pc.localDescription },
+      });
+
       setCallStarted(true);
       setIncomingCall(false);
       startCallTimers();
@@ -240,11 +289,11 @@ export default function SessionRoom({ sessionId }) {
     safeEndCleanup();
   }
 
-  // Safe cleanup: close pc, stop tracks, clear refs, timers
+  // Cleanup: close pc, stop tracks, clear refs
   function safeEndCleanup() {
     try {
       const pc = pcRef.current;
-      if (pc && typeof pc.getSenders === "function") {
+      if (pc) {
         try {
           pc.getSenders().forEach((s) => {
             try {
@@ -253,12 +302,12 @@ export default function SessionRoom({ sessionId }) {
           });
         } catch {}
         try {
-          pc.close && pc.close();
+          pc.close();
         } catch {}
       }
     } catch {}
 
-    // Stop local stream tracks
+    // Stop local tracks
     try {
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((t) => {
@@ -274,11 +323,9 @@ export default function SessionRoom({ sessionId }) {
 
     try {
       if (localVideo.current) localVideo.current.srcObject = null;
-      if (remoteVideo.current) localVideo.current.srcObject = null;
       if (remoteVideo.current) remoteVideo.current.srcObject = null;
     } catch {}
 
-    peerRef.current = null;
     pcRef.current = null;
     localStreamRef.current = null;
 
@@ -296,7 +343,7 @@ export default function SessionRoom({ sessionId }) {
     setBitrate(null);
   }
 
-  // Replace tracks (video/audio) using getSenders()
+  // Replace tracks (video/audio) using RTCRtpSender.replaceTrack
   async function replaceVideoTrack(newTrack) {
     try {
       const pc = pcRef.current;
@@ -306,7 +353,6 @@ export default function SessionRoom({ sessionId }) {
           .find((s) => s.track && s.track.kind === "video");
         if (sender && typeof sender.replaceTrack === "function") {
           await sender.replaceTrack(newTrack);
-          return;
         }
       }
     } catch (err) {
@@ -323,7 +369,6 @@ export default function SessionRoom({ sessionId }) {
           .find((s) => s.track && s.track.kind === "audio");
         if (sender && typeof sender.replaceTrack === "function") {
           await sender.replaceTrack(newTrack);
-          return;
         }
       }
     } catch (err) {
@@ -578,7 +623,10 @@ export default function SessionRoom({ sessionId }) {
     e.preventDefault();
     if (!msg.trim()) return;
     try {
-      socketRef.current?.emit("chat-message", { sessionId, text: msg });
+      socketRef.current?.emit("chat-message", {
+        sessionId,
+        text: msg,
+      });
     } catch {}
     setMsg("");
   }
