@@ -1,7 +1,7 @@
 // frontend/src/pages/UserDashboard.js
 import { useEffect, useState } from "react";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 /**
@@ -193,6 +193,16 @@ export default function UserDashboard() {
       <Navbar userRole="user" />
 
       <div className="max-w-5xl mx-auto p-6">
+        {/* Resources Quick Link */}
+        <div className="mb-6 text-right">
+          <Link 
+            to="/resources" 
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+          >
+            📚 View Mental Health Resources
+          </Link>
+        </div>
+
         {/* Booking Section */}
         <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">

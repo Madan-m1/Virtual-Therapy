@@ -9,6 +9,8 @@ const connectDB = require("./config/db");
 // Import routes
 const authRoutes = require("./routes/authRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const resourceRoutes = require("./routes/resourceRoutes");
 
 // Load environment variables & connect DB
 dotenv.config();
@@ -22,6 +24,8 @@ app.use(express.json());
 // REST API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/resources", resourceRoutes); // Resource routes integrated
 
 // Create HTTP + Socket.IO server
 const server = http.createServer(app);
@@ -60,27 +64,27 @@ io.on("connection", (socket) => {
     socket.to(sessionId).emit("user-joined", socket.user.id);
   });
 
-  // Chat messages (real-time) → do NOT echo back to sender
-socket.on("chat-message", ({ sessionId, text, sender }) => {
-  io.to(sessionId).emit("chat-message", {
-    sender: sender || socket.user.id,
-    text,
-    time: new Date(),
+  // Chat messages
+  socket.on("chat-message", ({ sessionId, text, sender }) => {
+    io.to(sessionId).emit("chat-message", {
+      sender: sender || socket.user.id,
+      text,
+      time: new Date(),
+    });
   });
-});
 
-  // WebRTC signaling (offer/answer/ICE)
+  // WebRTC signaling
   socket.on("signal", ({ sessionId, data }) => {
     socket.to(sessionId).emit("signal", { from: socket.user.id, data });
   });
 
-  // End Call event
+  // End call
   socket.on("end-call", ({ sessionId }) => {
     console.log("📞 Call ended by:", socket.user.id);
     socket.to(sessionId).emit("end-call", { by: socket.user.id });
   });
 
-  // Handle disconnects
+  // Disconnect
   socket.on("disconnect", () => {
     console.log("🔴 Disconnected:", socket.user.id);
   });
@@ -88,4 +92,6 @@ socket.on("chat-message", ({ sessionId, text, sender }) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);

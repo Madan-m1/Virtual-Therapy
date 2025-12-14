@@ -19,6 +19,14 @@ const UserSchema = new mongoose.Schema({
     enum: ["user", "therapist", "admin"],
     default: "user",
   },
+  isApproved: {
+    type: Boolean,
+    default: false, // therapists require approval
+  },
+  isBlocked: {
+    type: Boolean,
+    default: false,
+  },
 
   // 🔐 Forgot Password
   resetPasswordToken: String,

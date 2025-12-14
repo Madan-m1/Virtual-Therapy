@@ -15,7 +15,10 @@ export default function Login() {
       localStorage.setItem("role", res.data.user.role);
       localStorage.setItem("userId", res.data.user.id);
 
-      if (res.data.user.role === "therapist") {
+      // Updated role-based navigation with admin support
+      if (res.data.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (res.data.user.role === "therapist") {
         navigate("/therapist/dashboard");
       } else {
         navigate("/user/dashboard");
@@ -69,7 +72,7 @@ export default function Login() {
         </form>
 
         <p className="text-sm mt-6 text-gray-600">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <span
             onClick={() => navigate("/register")}
             className="text-blue-600 font-medium cursor-pointer hover:underline"

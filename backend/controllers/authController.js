@@ -61,11 +61,25 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid login details" });
     }
 
+    // BLOCKED USER CHECK - Already implemented
+    if (user.isBlocked) {
+      return res.status(403).json({
+        message: "Your account has been blocked by admin"
+      });
+    }
+
     // Use the matchPassword method from User model
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid login details" });
+    }
+
+    // THERAPIST APPROVAL CHECK (ADMIN BYPASSES THIS)
+    if (user.role === "therapist" && !user.isApproved) {
+      return res.status(403).json({
+        message: "Therapist account pending admin approval"
+      });
     }
 
     // Use 7-day expiration from integrated code (instead of 1 day)
@@ -105,6 +119,13 @@ exports.forgotPassword = async (req, res) => {
     if (!user) {
       // Return a generic message for security
       return res.json({ message: "If email exists, reset link sent" });
+    }
+
+    // BLOCKED USER CHECK - Added for password reset
+    if (user.isBlocked) {
+      return res.status(403).json({
+        message: "Your account has been blocked by admin"
+      });
     }
 
     // ✅ 1. Generate reset token
@@ -165,6 +186,13 @@ exports.resetPassword = async (req, res) => {
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    // BLOCKED USER CHECK - Added for password reset
+    if (user.isBlocked) {
+      return res.status(403).json({
+        message: "Your account has been blocked by admin"
+      });
     }
 
     // Set new password and clear reset token fields

@@ -1,7 +1,7 @@
 // frontend/src/pages/TherapistDashboard.js
 import { useEffect, useState } from "react";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 // Helpers (same as in UserDashboard – can be moved to shared utils later)
@@ -241,6 +241,19 @@ export default function TherapistDashboard() {
               })}
             </div>
           )}
+        </div>
+
+        {/* RESOURCES LINK */}
+        <div className="mt-8 text-center">
+          <Link 
+            to="/resources" 
+            className="inline-flex items-center justify-center px-5 py-3 text-base font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition duration-300 shadow-md"
+          >
+            📚 Access Therapy Resources
+          </Link>
+          <p className="mt-2 text-gray-600">
+            Find helpful materials, worksheets, and guides for your sessions.
+          </p>
         </div>
       </div>
     </div>
