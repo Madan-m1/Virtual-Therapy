@@ -15,8 +15,11 @@ export default function Login() {
       localStorage.setItem("role", res.data.user.role);
       localStorage.setItem("userId", res.data.user.id);
 
-      if (res.data.user.role === "therapist") navigate("/therapist/dashboard");
-      else navigate("/user/dashboard");
+      if (res.data.user.role === "therapist") {
+        navigate("/therapist/dashboard");
+      } else {
+        navigate("/user/dashboard");
+      }
     } catch (err) {
       alert("Invalid login details");
     }
@@ -28,6 +31,7 @@ export default function Login() {
         <h2 className="text-3xl font-semibold text-gray-800 mb-6">
           Welcome Back 👋
         </h2>
+
         <form onSubmit={handleLogin} className="flex flex-col gap-4 text-left">
           <div>
             <label className="block text-sm text-gray-600 mb-1">Email</label>
@@ -36,8 +40,10 @@ export default function Login() {
               placeholder="Enter your email"
               className="w-full border border-gray-300 p-2 rounded-md focus:ring-2 focus:ring-blue-400"
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
+
           <div>
             <label className="block text-sm text-gray-600 mb-1">Password</label>
             <input
@@ -45,8 +51,18 @@ export default function Login() {
               placeholder="Enter your password"
               className="w-full border border-gray-300 p-2 rounded-md focus:ring-2 focus:ring-blue-400"
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
+
+          {/* Forgot Password */}
+          <p
+            onClick={() => navigate("/forgot-password")}
+            className="text-sm text-blue-600 cursor-pointer hover:underline text-right"
+          >
+            Forgot Password?
+          </p>
+
           <button className="bg-blue-600 text-white font-medium py-2 rounded-md hover:bg-blue-700 transition">
             Login
           </button>
