@@ -100,39 +100,43 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
-
-    // Security: never reveal if user exists
+    
+    // Security: never reveal if user exists (but we should still handle errors gracefully)
     if (!user) {
+      // Return a generic message for security
       return res.json({ message: "If email exists, reset link sent" });
     }
 
-    // Generate reset token
-    const token = crypto.randomBytes(32).toString("hex");
+    // ✅ 1. Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // Hash token before saving
-    user.resetPasswordToken = crypto
+    // ✅ 2. Hash token before saving to DB
+    const hashedToken = crypto
       .createHash("sha256")
-      .update(token)
+      .update(resetToken)
       .digest("hex");
 
-    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 mins
+    // ✅ 3. Save to DB (using correct field name from second code block)
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 min
+    await user.save({ validateBeforeSave: false });
 
-    await user.save();
-
+    // ✅ 4. Build reset URL (IMPORTANT - using resetToken, not hashedToken)
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-    const html = `
+    // ✅ 5. Email message
+    const message = `
       <h2>Password Reset</h2>
-      <p>Click below to reset your password</p>
+      <p>You requested a password reset.</p>
       <a href="${resetUrl}">Reset Password</a>
       <p>This link expires in 15 minutes.</p>
     `;
 
-    // Send email using the email utility
+    // ✅ 6. Send email
     await sendEmail({
       to: user.email,
       subject: "Reset your Virtual Therapy password",
-      html,
+      html: message,
     });
 
     res.json({ message: "Password reset link sent to email" });
@@ -147,14 +151,16 @@ exports.forgotPassword = async (req, res) => {
 ============================ */
 exports.resetPassword = async (req, res) => {
   try {
+    // Hash the token from URL to compare with stored hash
     const hashedToken = crypto
       .createHash("sha256")
       .update(req.params.token)
       .digest("hex");
 
+    // Find user with matching token and check expiration
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
+      resetPasswordExpire: { $gt: Date.now() }, // Note: using resetPasswordExpire (not resetPasswordExpires)
     });
 
     if (!user) {
@@ -164,7 +170,7 @@ exports.resetPassword = async (req, res) => {
     // Set new password and clear reset token fields
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordExpire = undefined;
 
     // The pre-save hook will automatically hash the password
     await user.save();
