@@ -134,6 +134,8 @@ export default function UserDashboard() {
   const [date, setDate] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
   const [now, setNow] = useState(new Date());
+  // NEW: tool selection state for dropdown
+  const [toolSelection, setToolSelection] = useState("");
 
   const navigate = useNavigate();
 
@@ -177,6 +179,19 @@ export default function UserDashboard() {
     }
   };
 
+  // Handle tool dropdown change
+  const onToolChange = (e) => {
+    const val = e.target.value;
+    setToolSelection(val);
+    if (!val) return;
+    // navigate to specific tool pages
+    if (val === "emotion-check") {
+      navigate("/emotion-check");
+    }
+    // reset selection visually
+    setToolSelection("");
+  };
+
   // Split into upcoming/live vs history
   const upcomingAndLive = sessions.filter((s) => {
     const t = computeTiming(s, now);
@@ -193,8 +208,23 @@ export default function UserDashboard() {
       <Navbar userRole="user" />
 
       <div className="max-w-5xl mx-auto p-6">
-        {/* Resources Quick Link */}
-        <div className="mb-6 text-right">
+        {/* Top Bar with Tools and Resources */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          {/* Tools Dropdown */}
+          <div className="flex items-center">
+            <label className="mr-3 text-gray-600 font-medium">Tools</label>
+            <select
+              value={toolSelection}
+              onChange={onToolChange}
+              className="border border-gray-300 p-2 rounded-md focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">Select tool</option>
+              <option value="emotion-check">Emotion Check</option>
+              {/* future tools can be added here */}
+            </select>
+          </div>
+
+          {/* Resources Quick Link */}
           <Link 
             to="/resources" 
             className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"

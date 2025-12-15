@@ -9,7 +9,11 @@ import UserDashboard from "./pages/UserDashboard";
 import TherapistDashboard from "./pages/TherapistDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminSessions from "./pages/AdminSessions";
-import Resources from "./pages/Resources"; // ✅ ADDED
+import Resources from "./pages/Resources";
+
+// New pages for emotion/sentiment flow
+import EmotionCheck from "./pages/EmotionCheck";
+import SentimentAnalysis from "./pages/SentimentAnalysis";
 
 import SessionRoom from "./components/SessionRoom";
 import AdminRoute from "./components/AdminRoute";
@@ -35,7 +39,11 @@ export default function App() {
         <Route path="/therapist/dashboard" element={<TherapistDashboard />} />
 
         {/* Resources Page */}
-        <Route path="/resources" element={<Resources />} /> {/* ✅ INTEGRATED */}
+        <Route path="/resources" element={<Resources />} />
+
+        {/* Emotion / Sentiment Flow */}
+        <Route path="/emotion-check" element={<EmotionCheck />} />
+        <Route path="/sentiment-analysis" element={<SentimentAnalysis />} />
 
         {/* Protected Admin Routes */}
         <Route

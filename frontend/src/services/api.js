@@ -13,4 +13,15 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
+/* ---------------------------------------------------------
+   🌟 SENTIMENT / EMOTION ANALYSIS API CALL
+   This will call backend → backend proxies → FastAPI AI service
+---------------------------------------------------------- */
+export const analyzeSentiment = async (text) => {
+  return API.post("/sentiment/analyze", { text });
+};
+
+/* ---------------------------------------------------------
+   📌 Export main API instance
+---------------------------------------------------------- */
 export default API;

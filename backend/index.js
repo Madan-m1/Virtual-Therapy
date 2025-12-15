@@ -1,3 +1,5 @@
+// backend/server.js (FINAL – integrated)
+
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -12,6 +14,9 @@ const sessionRoutes = require("./routes/sessionRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
 
+// ✅ NEW: Sentiment analysis routes
+const sentimentRoutes = require("./routes/sentimentRoutes");
+
 // Load environment variables & connect DB
 dotenv.config();
 connectDB();
@@ -25,7 +30,11 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/resources", resourceRoutes); // Resource routes integrated
+app.use("/api/resources", resourceRoutes);
+
+// ✅ NEW: Sentiment API
+// POST /api/sentiment/analyze
+app.use("/api/sentiment", sentimentRoutes);
 
 // Create HTTP + Socket.IO server
 const server = http.createServer(app);
@@ -40,7 +49,7 @@ const io = new Server(server, {
   },
 });
 
-// Socket Authentication Middleware (JWT)
+// 🔐 Socket Authentication Middleware (JWT)
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error("No token provided"));
@@ -49,22 +58,22 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.user = decoded;
     next();
-  } catch {
+  } catch (err) {
     next(new Error("Invalid token"));
   }
 });
 
-// Socket Events
+// 🔌 Socket Events
 io.on("connection", (socket) => {
   console.log("🟢 Connected:", socket.user.id);
 
-  // Join a session room
+  // Join therapy session room
   socket.on("join-session", (sessionId) => {
     socket.join(sessionId);
     socket.to(sessionId).emit("user-joined", socket.user.id);
   });
 
-  // Chat messages
+  // 💬 Chat messages
   socket.on("chat-message", ({ sessionId, text, sender }) => {
     io.to(sessionId).emit("chat-message", {
       sender: sender || socket.user.id,
@@ -73,18 +82,21 @@ io.on("connection", (socket) => {
     });
   });
 
-  // WebRTC signaling
+  // 📡 WebRTC signaling
   socket.on("signal", ({ sessionId, data }) => {
-    socket.to(sessionId).emit("signal", { from: socket.user.id, data });
+    socket.to(sessionId).emit("signal", {
+      from: socket.user.id,
+      data,
+    });
   });
 
-  // End call
+  // 📞 End call
   socket.on("end-call", ({ sessionId }) => {
     console.log("📞 Call ended by:", socket.user.id);
     socket.to(sessionId).emit("end-call", { by: socket.user.id });
   });
 
-  // Disconnect
+  // ❌ Disconnect
   socket.on("disconnect", () => {
     console.log("🔴 Disconnected:", socket.user.id);
   });
